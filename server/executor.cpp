@@ -1,7 +1,7 @@
 #include "server.h"
 
 
-void executor(int fd, char *command, char *key, char *value, unordered_map<string, string>& db)
+void executor(int fd, string command, string key, string value, unordered_map<string, string>& db)
 {
     //* SAFETY CHECK: If command is completely empty, skip parsing
     if (command == NULL)

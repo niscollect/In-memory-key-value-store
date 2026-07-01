@@ -4,7 +4,7 @@
 
 using namespace std;
 
-int parser(int fd, unordered_map<string, string>& db);
+int parser(Client& client, unordered_map<string, string>& db);
 // -2 = client disconnected (PARSER_DISCONNECTED)
 // -1 = client abrupt failure (PARSER_ERROR)
 // 0 = all good

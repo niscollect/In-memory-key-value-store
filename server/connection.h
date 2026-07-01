@@ -7,6 +7,11 @@ class Client
 
     int fd;
     string input_buffer;
+    
+    Client(int fd)
+    {
+        this->fd = fd;
+    }
 };
 
 
