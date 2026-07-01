@@ -1,6 +1,6 @@
 #include "server.h"
 
-void parser(int fd, int epfd, unordered_map<string, string>& db)
+int parser(int fd, unordered_map<string, string>& db)
 {
     char buff[1024];
     int buff_received = recv(fd, buff, (sizeof buff) - 1, 0);
@@ -10,18 +10,9 @@ void parser(int fd, int epfd, unordered_map<string, string>& db)
     {
         cout << "Client disconnected: " << fd << endl;
 
-        //* close the client and remove it from the epoll's watchlist -- since the client is already gone, no point in keeping it
-        close(fd);
-        if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr) == -1)
-        {
-            perror("epoll_ctl");
-            // continue; // not break but continue, coz we have other clients too
-            return;
-        }
-
         // break;
         // continue; // not break but continue
-        return;
+        return PARSER_DISCONNECTED; // to indicate that cient has disconnected
     }
 
     // // if recv() failed
@@ -31,22 +22,16 @@ void parser(int fd, int epfd, unordered_map<string, string>& db)
         if (errno == EAGAIN || errno == EWOULDBLOCK)
         {
             // Not an error. It's expected behaviour
+
+            //*? It means: I tried to read, but the buffer is empty right now. Go back to epoll_wait and try again later
+
             // We've read all currently available data.
             // continue;
-            return;
+            return PARSER_OK; // basically return 0 (normal)
         }
 
-        perror("Server: recv");
-        close(fd);
-        if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr) == -1)
-        {
-            perror("epoll_ctl");
-            // continue; // not break but continue, coz we have other clients too
-            return;
-        }
-        // break;
-        // continue; // not break but continue
-        return;
+        // else, client abrupt failure
+        return PARSER_ERROR;
     }
 
     // reached here, means actual data has come. Parse it
@@ -62,4 +47,6 @@ void parser(int fd, int epfd, unordered_map<string, string>& db)
 
 
     executor(fd, command, key, value, db);
+
+    return PARSER_OK; // all good
 }

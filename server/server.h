@@ -22,6 +22,12 @@
 
 using namespace std;
 
+
+const int PARSER_DISCONNECTED = -2;
+const int PARSER_ERROR = -1;
+const int PARSER_OK = 0;
+
+
 // NOTE: the namespace std line should be used before including any of the artifical header file. coz compiler would then go directly into those files, before reading the using namespace std, and would hit an error eventually
 // However, it's a better practice to keep this namespace std line, in every header file
 
@@ -30,5 +36,3 @@ using namespace std;
 #include "executor.h"
 #include "network.h"
 #include "parser.h"
-
-
