@@ -23,9 +23,9 @@
 using namespace std;
 
 
-const int PARSER_DISCONNECTED = -2;
-const int PARSER_ERROR = -1;
-const int PARSER_OK = 0;
+const int CLIENT_DISCONNECTED = -2;
+const int NETWORK_ERROR = -1;
+const int SUCCESS = 0;
 
 
 // NOTE: the namespace std line should be used before including any of the artifical header file. coz compiler would then go directly into those files, before reading the using namespace std, and would hit an error eventually

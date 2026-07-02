@@ -2,4 +2,4 @@
 
 using namespace std;
 
-void executor(int fd, string command, string key, string value, unordered_map<string, string>& db);
+int executor(int fd, string command, string key, string value, unordered_map<string, string>& db);

@@ -1,4 +1,3 @@
-
 Very first step towards building an in-memory key-value-pair store, is reading about how Redis works, not deeply, just want it does and how(overview).
 Describing very briefly, Redis server sits between a Client and a memory(normally a DB) working as a cache. Now when we zoom in on the server part (i.ee actual Redis), we find it operating on and across several layers: 
 - **Network Layer** : TCP Sockets {How does a client talk to redis}
@@ -257,7 +256,7 @@ Also, one important thing to think of.
 We might have more than one clients, and everyone might be sending their incomplete info, as we have non-blocking sockets. So, to overcome that challenge, we need to have a buffer for each client.
 Hence, we introduce a `client` object, to hold the state of a client. So, each client is essentially a client object holding the state.
 ```
-obj client ->   fd, buffer
+obj client ->   fd, input_buffer
 ```
 
 It's a necessity, not an OOP demand.
@@ -279,11 +278,17 @@ Now, a natural question arises: which module should own the responsibility of ha
 The `server` or the `connection` module?
 Only argument for `sever` could be that many modules might need them, so server being the orchestrator should handle it.
 However, if though critically, within the system modules above `connection` module in the data-flow hierarchy, wouldn't need them, not presently at least.
-So we'll let connection handle it.
+So we'll let `connection` handle it.
+
+Once done with this. Let's head towards `parser` to setup the parsing logic.
+
+Let's have a rough algorithm.
+So, we have an `input_buffer` to which we just append the next received *bytes*.
+So, if first it brought "`SET na`" and then later it brough "`me John\nGET na`", then I have "`SET name John\nGET na`" in the `input_buffer` . 
+So we want the algo to extract whatever exists before `\n`.
+Also, mind that, since there could be more than one command even before the previous one is processed, we'll at some point have "`SET name Alex\nGET name John\nSET name Sam\nDEL na`"
+So now we can see, the parser doesn't just have to extract whatever it before `\n`, it needs to loop over it too.
 
 
 
-----
-more coming soon (a little almost everyday)
-
-
+> **Future improvement:** Introduce per-client output buffers and move `send()` into the connection layer when supporting partial writes.

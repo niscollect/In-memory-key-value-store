@@ -2,7 +2,15 @@
 
 unordered_map<int, Client> clients;
 
-void disconnect_client(){} // we'll utilize it shortly
+void disconnect_client(int fd, int epfd)
+{
+    close(fd);
+    clients.erase(fd);
+    if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr) == -1) {
+        perror("epoll_ctl del");
+    }
+    cout << "Client disconnected: " << fd << endl;
+}
 
 
 void connect_to_client(int sockfd, int epfd, int num_of_ready_fds, struct sockaddr_storage their_addr, vector<epoll_event>& events, unordered_map<string, string>& db) // Optimization: passing the "events" vector by reference, not by value
@@ -69,27 +77,7 @@ void connect_to_client(int sockfd, int epfd, int num_of_ready_fds, struct sockad
             // client disconnected
             if (buff_received == 0)
             {
-                cout << "Client disconnected: " << fd << endl;
-
-                // break;
-                // continue; // not break but continue
-                // return PARSER_DISCONNECTED; // to indicate that cient has disconnected
-                //* clean up
-                //* close the client and remove it from the epoll's watchlist -- since the client is already gone, no point in keeping it
-                // also remove it from the `clients` umap
-                close(fd);
-                clients.erase(fd);
-                if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr) == -1)
-                {
-                    perror("epoll_ctl");
-                    // continue; // not break but continue, coz we have other clients too
-                    // return;
-                    
-                    continue;
-                }
-
-
-                continue;
+                disconnect_client(fd, epfd);
             }
 
             // // if recv() failed
@@ -109,21 +97,9 @@ void connect_to_client(int sockfd, int epfd, int num_of_ready_fds, struct sockad
                 }
 
                 // else, client abrupt failure
-                // return PARSER_ERROR;
-                //* clean up
-                perror("Server: recv");
-                close(fd);
-                clients.erase(fd);
-                if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr) == -1)
-                {
-                    perror("epoll_ctl");
-                    // continue; // not break but continue, coz we have other clients too
-                    // return;
+                disconnect_client(fd, epfd);
 
-                    continue;
-                }
-
-                continue;
+                continue; //??? do I remove this continue also?
             }
 
             // reached here, means actual data has come. Parse it
@@ -144,6 +120,9 @@ void connect_to_client(int sockfd, int epfd, int num_of_ready_fds, struct sockad
             // command parsing
             int parser_result = parser(client, db);
             // command execution - done by parser.cpp
+
+            if(parser_result != SUCCESS)
+                disconnect_client(fd, epfd);
             
         }
     }

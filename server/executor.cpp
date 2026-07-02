@@ -1,128 +1,63 @@
 #include "server.h"
 
-
-void executor(int fd, string command, string key, string value, unordered_map<string, string>& db)
+int executor(int fd, string command, string key, string value, unordered_map<string, string> &db)
 {
-    //* SAFETY CHECK: If command is completely empty, skip parsing
-    if (command == NULL)
-    {
-        //---------- close(fd);
-        // continue;
-        return;
-    }
 
-    if (strcmp(command, "SET") == 0)
+    //@note When server fails to send a response, the connection must close.
+    // currently in our we are just returning it, which leaves back a zombie connection. We need to close it.
+    // But that is the responsibility of the `connection` module
+
+    if (command == "SET")
     {
-        //* SAFETY CHECK: Ensure a valid key and value exist
-        if (key != NULL && value != NULL)
+        db[key] = value;
+        if (send(fd, "OK\n", 3, 0) == -1)
         {
-            db[key] = value;
-            if (send(fd, "OK\n", 3, 0) == -1)
+            perror("couldn't save");
+            return NETWORK_ERROR;
+        }
+    }
+    else if (command == "GET")
+    {
+        //* SAFETY CHECK: Check if key exists in the database
+        if (db.count(key) > 0)
+        {
+            string response = db[key] + "\n";
+            if (send(fd, response.c_str(), response.length(), 0) == -1)
             {
-                // close(sockfd);
-                perror("couldn't save");
-                // break; //* breaking will close the connection anyways
-                return;
-
-                //-------------- close(fd);
+                perror("server: couldn't send    ---");
+                return NETWORK_ERROR;
             }
         }
         else
         {
-            const char *msg = "ERROR: Missing Key or Value\n";
+            const char *msg = "ERROR: Key Not Found\n";
             if (send(fd, msg, strlen(msg), 0) == -1)
             {
-                // close(sockfd);
-                perror("server: couldn't send   -");
-                // break; //* breaking will close the connection anyways
-                return;
-
-                //------------- close(fd);
+                perror("server: couldn't send-");
+                return NETWORK_ERROR;
             }
         }
     }
-    else if (strcmp(command, "GET") == 0)
+    else if (command == "DEL")
     {
-        // * SAFETY CHECK: Ensure a valid key was passed
-        if (key != NULL)
-        {
-            //* SAFETY CHECK: Check if key exists in the database
-            if (db.count(key) > 0)
-            {
-                string response = db[key] + "\n";
-                if (send(fd, response.c_str(), response.length(), 0) == -1)
-                {
-                    // close(sockfd);
-                    perror("server: couldn't send    ---");
-                    // break; //* breaking will close the connection anyways
-                    return;
 
-                    //----------- close(fd);
-                }
-            }
-            else
-            {
-                const char *msg = "ERROR: Key Not Found\n";
-                if (send(fd, msg, strlen(msg), 0) == -1)
-                {
-                    // close(sockfd);
-                    perror("server: couldn't send-");
-                    // break; //* breaking will close the connection anyways
-                    return;
-
-                    //----------- close(fd);
-                }
-            }
-        }
-        else
+        // SAFETY CHECK: Check if key exists in the database
+        if (db.count(key) > 0)
         {
-            const char *msg = "ERROR: Missing Key\n";
-            if (send(fd, msg, strlen(msg), 0) == -1)
+            db.erase(key);
+            if (send(fd, "OK\n", 3, 0) == -1) // inform the client that want he wanted has been done successfully
             {
                 perror("server: send");
-                // break;
-                return;
-            }
-        }
-    }
-    else if (strcmp(command, "DEL") == 0)
-    {
-        // SAFETY CHECK: Ensure a valid key was passed
-        if (key != NULL)
-        {
-            // SAFETY CHECK: Check if key exists in the database
-            if (db.count(key) > 0)
-            {
-                db.erase(key);
-                if (send(fd, "OK\n", 3, 0) == -1) // inform the client that want he wanted has been done successfully
-                {
-                    perror("server: send");
-                    // break;
-                    return;
-                }
-            }
-            else
-            {
-                const char *msg = "ERROR: Key Not Found\n";
-                if (send(fd, msg, strlen(msg), 0) == -1)
-                {
-                    // close(sockfd);
-                    perror("server: couldn't send-");
-                    // break; //* breaking will close the connection anyways
-                    return;
-
-                    //----------- close(fd);
-                }
+                return NETWORK_ERROR;
             }
         }
         else
         {
-            const char *msg = "ERROR: Missing Key\n";
+            const char *msg = "ERROR: Key Not Found\n";
             if (send(fd, msg, strlen(msg), 0) == -1)
             {
-                perror("server: send");
-                // break;
-                return;
+                perror("server: couldn't send-");
+                return NETWORK_ERROR;
             }
         }
     }
@@ -133,7 +68,10 @@ void executor(int fd, string command, string key, string value, unordered_map<st
         {
             perror("server: send");
             // break;
-            return;
+            return NETWORK_ERROR;
         }
     }
+
+
+    return SUCCESS;
 }
