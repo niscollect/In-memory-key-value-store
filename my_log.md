@@ -1,3 +1,4 @@
+
 Very first step towards building an in-memory key-value-pair store, is reading about how Redis works, not deeply, just want it does and how(overview).
 Describing very briefly, Redis server sits between a Client and a memory(normally a DB) working as a cache. Now when we zoom in on the server part (i.ee actual Redis), we find it operating on and across several layers: 
 - **Network Layer** : TCP Sockets {How does a client talk to redis}
@@ -292,3 +293,24 @@ So now we can see, the parser doesn't just have to extract whatever it before `\
 
 
 > **Future improvement:** Introduce per-client output buffers and move `send()` into the connection layer when supporting partial writes.
+
+
+
+## STEP-6
+**RESP**
+
+For now, let's move on to implement RESP.
+First study about RESP.
+[[https://redis.io/docs/latest/develop/reference/protocol-spec/]] 
+
+I'm just going to abandon my client program now. 
+I need to worry about the server handling the RESP encoded statements, not about how to encode them.
+I'll just use `redis-cli -p <my_server_port>`, and the official `redis-cli` does the work of proper RESP-compliant client.
+So, finally here, I abandon my `client.cpp` program. 
+
+<hr>
+
+<br>
+![[Pasted image 20260703142843.png]]
+
+So far, so good.

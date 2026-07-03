@@ -10,7 +10,7 @@ int executor(int fd, string command, string key, string value, unordered_map<str
     if (command == "SET")
     {
         db[key] = value;
-        if (send(fd, "OK\n", 3, 0) == -1)
+        if (send(fd, "+OK\r\n", 5, 0) == -1)
         {
             perror("couldn't save");
             return NETWORK_ERROR;
@@ -21,7 +21,8 @@ int executor(int fd, string command, string key, string value, unordered_map<str
         //* SAFETY CHECK: Check if key exists in the database
         if (db.count(key) > 0)
         {
-            string response = db[key] + "\n";
+            string val = db[key];
+            string response = "$" + to_string(val.length()) + "\r\n" + val + "\r\n";
             if (send(fd, response.c_str(), response.length(), 0) == -1)
             {
                 perror("server: couldn't send    ---");
@@ -30,7 +31,7 @@ int executor(int fd, string command, string key, string value, unordered_map<str
         }
         else
         {
-            const char *msg = "ERROR: Key Not Found\n";
+            const char *msg = "$-1\r\n"; // this means null for the RESP, i.e. key not found
             if (send(fd, msg, strlen(msg), 0) == -1)
             {
                 perror("server: couldn't send-");
@@ -45,25 +46,21 @@ int executor(int fd, string command, string key, string value, unordered_map<str
         if (db.count(key) > 0)
         {
             db.erase(key);
-            if (send(fd, "OK\n", 3, 0) == -1) // inform the client that want he wanted has been done successfully
-            {
-                perror("server: send");
+            // 1 key deleted successfully
+            if (send(fd, ":1\r\n", 4, 0) == -1) 
                 return NETWORK_ERROR;
-            }
         }
         else
         {
-            const char *msg = "ERROR: Key Not Found\n";
-            if (send(fd, msg, strlen(msg), 0) == -1)
-            {
-                perror("server: couldn't send-");
+            // 0 keys deleted (key didn't exist)
+            if (send(fd, ":0\r\n", 4, 0) == -1)
                 return NETWORK_ERROR;
-            }
         }
+
     }
     else
     {
-        const char *msg = "ERROR: Unknown Command\n";
+        const char *msg = "-ERROR: Unknown Command\r\n";
         if (send(fd, msg, strlen(msg), 0) == -1)
         {
             perror("server: send");
