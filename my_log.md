@@ -67,7 +67,7 @@ However, a point to establish the base:
 Whole point of an im-memory key-value server store like Redis is that clients share the database. And so it's not a conflict if A sets a value and B changes or deletes it.
 
 We've come to a realization, that the server, currently, can't handle multiple clients. The reason is, it's waiting on the first client to disconnect and not serving other clients waiting in the queue.
-One solution is concurrency. But, Redis doesn't do it, and so won't we. Redis uses single threaded event loop and non-blocking I/O (multiplexing)
+One solution is Multi threading. But, we won't do it, infact, Redis doesn't do it either. Redis uses single threaded event loop and non-blocking I/O (multiplexing)
 
 So, we'll first learn How Multiple Clients Behave In a Single-Threaded Model.
 [[https://stackoverflow.com/questions/51587316/how-to-handle-multiple-clients-on-single-thread-server-with-sockets]]
