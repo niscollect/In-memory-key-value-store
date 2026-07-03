@@ -66,10 +66,10 @@ TCP guarantees an ordered byte stream, not message boundaries — a single comma
 ### Build
 
 ```bash
-g++ -std=c++17 -o server server.cpp connection.cpp parser.cpp executor.cpp
+g++ -std=c++17 -o server *.cpp
 ```
 
-> Adjust source file names above to match your actual project layout.
+> After `cd server`
 
 ### Run
 
