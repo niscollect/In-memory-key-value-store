@@ -114,6 +114,3 @@ and more
 
 A detailed build log covering the socket lifecycle, the move to `epoll`, per-client state design, and protocol parsing decisions is maintained here: [`my_log.md`](./my_log.md)
 
-## License
-
-MIT (or update as applicable)
