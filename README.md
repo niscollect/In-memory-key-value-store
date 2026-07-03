@@ -107,6 +107,7 @@ OK
 - [ ] Persistence (write-ahead log / snapshotting)
 - [ ] TTL and key expiration (lazy + active)
 - [ ] Output buffering / partial write handling
+<br>
 and more
 
 ## Development Log
