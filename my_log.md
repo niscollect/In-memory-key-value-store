@@ -311,6 +311,7 @@ So, finally here, I abandon my `client.cpp` program.
 <hr>
 
 <br>
-![[Pasted image 20260703142843.png]]
+
+[[Pasted image 20260703142843.png]]
 
 So far, so good.
