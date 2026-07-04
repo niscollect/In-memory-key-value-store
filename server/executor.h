@@ -2,4 +2,4 @@
 
 using namespace std;
 
-int executor(int fd,string command, string key, string value, ServerState &state, bool is_recovery = false);
+int executor(int fd,string command, string key, string value, ServerState& state, bool is_recovery);

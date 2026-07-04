@@ -4,7 +4,7 @@
 // TODO: parser needs to be modulated well enough to decode the RESP message
 
 // later didvide handleCommand into parse, validate and execute. Later when it grows large
-int handleCommand(string command, string key, string value, Client &client, ServerState &state, bool is_recovery)
+int handleCommand(string command, string key, string value, Client &client, ServerState& state, bool is_recovery)
 {
     // Trim any leading space from getline and trailing \r
     if (!value.empty() && value.front() == ' ')
@@ -86,11 +86,13 @@ int handleCommand(string command, string key, string value, Client &client, Serv
         }
     }
 
-    return executor(client.fd, command, key, value, state); 
+    // when replaying the WAL, we need not worry about the above validation checks, coz we've saved to WAL in executor and onlyu validated statements reached executor
+
+    return executor(client.fd, command, key, value, state, is_recovery); 
     // pass the "RESP statement" to the executor, coz only the verified ones reach there, and so we write only the verified ones
 }
 
-int parser(Client &client, ServerState &state, bool is_recovery = false)
+int parser(Client& client, ServerState& state, bool is_recovery)
 {
     string& buff = client.input_buffer;
 

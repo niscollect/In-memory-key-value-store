@@ -13,7 +13,7 @@ void disconnect_client(int fd, int epfd)
 }
 
 
-void connect_to_client(int sockfd, int epfd, int num_of_ready_fds, struct sockaddr_storage their_addr, vector<epoll_event>& events, ServerState &state) // Optimization: passing the "events" vector by reference, not by value
+void connect_to_client(int sockfd, int epfd, int num_of_ready_fds, struct sockaddr_storage their_addr, vector<epoll_event>& events, ServerState& state) // Optimization: passing the "events" vector by reference, not by value
 {
     for (int i = 0; i < num_of_ready_fds; i++)
     {
@@ -118,7 +118,7 @@ void connect_to_client(int sockfd, int epfd, int num_of_ready_fds, struct sockad
             client.input_buffer.append(buff, buff_received);
 
             // command parsing
-            int parser_result = parser(client, state);
+            int parser_result = parser(client, state, false);
             // command execution - done by parser.cpp
 
             if(parser_result != SUCCESS)

@@ -2,4 +2,4 @@
 
 using namespace std;
 
-void event_loop(int sockfd, ServerState &state);
+void event_loop(int sockfd, ServerState& state);

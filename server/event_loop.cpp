@@ -4,7 +4,7 @@ struct sockaddr_storage their_addr;
 //* socklen_t addr_size = sizeof their_addr;
 // it is best to reset it every time, coz accept() can modify addr_size
 
-void event_loop(int sockfd, ServerState &state)
+void event_loop(int sockfd, ServerState& state)
 {
     // * epoll instance
     int epfd = epoll_create1(0);
