@@ -4,7 +4,7 @@
 // TODO: parser needs to be modulated well enough to decode the RESP message
 
 // later didvide handleCommand into parse, validate and execute. Later when it grows large
-int handleCommand(string command, string key, string value, Client &client, unordered_map<string, string> &db)
+int handleCommand(string command, string key, string value, Client &client, ServerState &state, bool is_recovery)
 {
     // Trim any leading space from getline and trailing \r
     if (!value.empty() && value.front() == ' ')
@@ -86,10 +86,11 @@ int handleCommand(string command, string key, string value, Client &client, unor
         }
     }
 
-    return executor(client.fd, command, key, value, db);
+    return executor(client.fd, command, key, value, state); 
+    // pass the "RESP statement" to the executor, coz only the verified ones reach there, and so we write only the verified ones
 }
 
-int parser(Client &client, unordered_map<string, string> &db)
+int parser(Client &client, ServerState &state, bool is_recovery = false)
 {
     string& buff = client.input_buffer;
 
@@ -175,7 +176,7 @@ int parser(Client &client, unordered_map<string, string> &db)
         key = statement.size() > 1 ? statement[1] : "";
         value = statement.size() > 2 ? statement[2] : "";
 
-        int handleCommandRes = handleCommand(command, key, value, client, db);
+        int handleCommandRes = handleCommand(command, key, value, client, state, is_recovery);
 
         if(handleCommandRes != SUCCESS)
             return handleCommandRes;

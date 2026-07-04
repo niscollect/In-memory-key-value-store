@@ -2,4 +2,4 @@
 
 using namespace std;
 
-void event_loop(int sockfd, unordered_map<string, string>& db);
+void event_loop(int sockfd, ServerState &state);

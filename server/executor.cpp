@@ -1,6 +1,6 @@
 #include "server.h"
 
-int executor(int fd, string command, string key, string value, unordered_map<string, string> &db)
+int executor(int fd, string command, string key, string value, ServerState &state, bool is_recovery)
 {
 
     //@note When server fails to send a response, the connection must close.
@@ -9,7 +9,31 @@ int executor(int fd, string command, string key, string value, unordered_map<str
 
     if (command == "SET")
     {
-        db[key] = value;
+
+
+        // * WAL HERE
+        // save in RESP format -> just make it RESP
+        if (state.wal_file.is_open()) 
+        {
+            state.wal_file << "*3\r\n" 
+            << "$3\r\nSET\r\n" 
+            << "$" << key.length() << "\r\n" << key << "\r\n"
+            << "$" << value.length() << "\r\n" << value << "\r\n";
+
+            state.wal_file.flush();
+            // force save to disk
+
+        }
+        else
+        {
+            std::cerr << "Error: Write-Ahead Log is not open!" << std::endl;
+        }
+
+
+
+
+
+        state.db[key] = value;
         if (send(fd, "+OK\r\n", 5, 0) == -1)
         {
             perror("couldn't save");
@@ -19,9 +43,9 @@ int executor(int fd, string command, string key, string value, unordered_map<str
     else if (command == "GET")
     {
         //* SAFETY CHECK: Check if key exists in the database
-        if (db.count(key) > 0)
+        if (state.db.count(key) > 0)
         {
-            string val = db[key];
+            string val = state.db[key];
             string response = "$" + to_string(val.length()) + "\r\n" + val + "\r\n";
             if (send(fd, response.c_str(), response.length(), 0) == -1)
             {
@@ -43,9 +67,28 @@ int executor(int fd, string command, string key, string value, unordered_map<str
     {
 
         // SAFETY CHECK: Check if key exists in the database
-        if (db.count(key) > 0)
+        if (state.db.count(key) > 0)
         {
-            db.erase(key);
+
+            // * WAL HERE
+            // save in RESP format -> just make it RESP
+            if (state.wal_file.is_open()) 
+            {
+                state.wal_file << "*3\r\n" 
+                << "$3\r\nSET\r\n" 
+                << "$" << key.length() << "\r\n" << key << "\r\n"
+                << "$" << value.length() << "\r\n" << value << "\r\n";
+
+                state.wal_file.flush();
+                // force save to disk
+            }
+            else
+            {
+                std::cerr << "Error: Write-Ahead Log is not open!" << std::endl;
+            }
+
+            
+            state.db.erase(key);
             // 1 key deleted successfully
             if (send(fd, ":1\r\n", 4, 0) == -1) 
                 return NETWORK_ERROR;

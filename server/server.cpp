@@ -2,10 +2,11 @@
 
 #include "server.h"
 
+
 int main(int argc, char *argv[])
 {
-    // DB
-    unordered_map<string, string> db;
+
+    ServerState state;
 
     // normal args check
     if (argc != 2)
@@ -21,7 +22,7 @@ int main(int argc, char *argv[])
     }
 
     // setting up event loop (epoll)
-    event_loop(sockfd, db);
+    event_loop(sockfd, state);
 
         // connection management (includes parsing and execution) - inside event_loop function
 

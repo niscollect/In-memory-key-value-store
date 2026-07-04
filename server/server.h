@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200112L
 
 #include <iostream>
+#include <fstream> // Required header for file handling
 #include <unordered_map>
 #include <bits/stdc++.h>
 #include <fcntl.h>
@@ -19,8 +20,24 @@
 #include <signal.h>
 #include <sys/epoll.h>
 
-
 using namespace std;
+
+
+class ServerState
+{
+    public:
+    // DB
+    unordered_map<string, string> db;
+
+    
+    // Instantiate a stream object
+    std::ofstream wal_file;
+
+    ServerState()
+    {
+        this->wal_file.open("wal.txt", std::ios::app);
+    }
+};
 
 
 const int CLIENT_DISCONNECTED = -2;
