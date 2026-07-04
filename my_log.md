@@ -316,3 +316,73 @@ So, finally here, I abandon my `client.cpp` program.
 
 
 So far, so good.
+
+<hr>
+<br>
+<hr>
+# STEP-7
+**Implementing persistence**
+
+The most important part of any database system is to have persistence. 
+WHY? To survive crashes.
+
+We, as almost very other database, update modify data in volatile memory ("in-memory"). WHY? Coz it's fast. ofc. 
+But, since it's in volatile memory, any crash (or power outage) can just wipe it all off.
+The very need of attaining the durability of a disk without paying a cost for it on every operation.
+So, everyone introduces persistence.
+
+There are various techniques to achieve this, and there are professional systems using them at scale. Some of the fundamental techniques are:
+1) WAL (Write Ahead Log)
+2) Point-in-Time Snapshotting
+3) Shadow Paging (Copy-on-Write)
+4) LSM trees
+and more
+
+Read about them. (Just good enough)
+
+---
+1) **WAL** : Write-Ahead Log, as the name suggests, it writes before it logs. Basically:
+   Record intent before applying the change; i.e., before applying a change to actual data structure, write down what you are about to do, on disk, first.
+   Why it exists?
+   Suppose, you add everything to the DB the moment it changes. Now,  suppose the system is doing a write operation, and when it is mid-operation, power goes out. Now you have a hlf-correct db, and an incomplete/corrupt disk storage. No gains. This is where WAL wins.
+   Suppose you propose your write operation, but right before it starts actually writing, it stores what it is about to do, temporarily. Only after that it starts actually writing. Now, even if power goes out when performing the write, you can use that temporary intent that you had, and do the write. 
+   Noting down the intention that I am doing to SET value of x to 5, is way more quick and safe as compared to saving the entire DB.
+   And WAL is majorly as append-only log, so just append your one line and get going.
+   Now, whenever a crash happens, you do not worry about the corrupted data you have on startup. Just replay the entire log line-by-line.
+2) **Point-time Snapshotting** : It captures the _entire_ dataset as it looked at one single, specific moment, not a gradual or partial capture.
+   It uses fork(). 
+   [Discussion over it - later]
+
+---
+Let's start over how to implement WAL.
+
+Also, just a quick note, that since our parser already takes care of command boundaries, we'll save the log in RESP format itself. So it'll be easier.
+
+Now, there are two parts to the implementation:
+(i) writing the log before actual work
+(ii) replaying the log
+
+So, let's do the basic implementation first:
+
+**PHASE-1**: Write Ahead in Log
+Create a wal.txt when the server starts.
+Then whenever something "mutating" (SET, DEL; not GET) is about to be executed, write it in WAL and then execute. [save the RESP statement]
+{now to simulate crash, just kill the terminal, and restart the server}
+
+Wait.
+The current design is like this:
+server calls the network, then server calls the event_loop, then event loop calls the connection which then calls the parser, executor.
+So for passing down the `ofstream` instance, I'll to pass it through moudles that don't even need it. Now, I realize this was also being done with `db`.
+Today the program is small, slowly it'll become a headache, passing down everything through parameters . So, a natural solution to this, turns out creating an object for the sever state.
+NOT coz it's famous, or OOP demands, but coz the architecture demands it now.
+
+
+**PHASE-2**: Replay the Log
+There's something to mind. We are supposed to replay the Log, that means everything exactly as it comes from a client. But it is not coming from a client. So the network calls can't be made, coz they need an `fd`, and a fake `fd` will result in `NETWORK_ERROR`, and will result in aborting the replay.
+So, we need a solution for that.
+The most basic and efficient way: use a FLAG to show we are in recover mode, not active mode.
+
+One natural question can (and must) come to mind. If this is all supposed to happen during the startup, how are new clients supposed to connect and mutate the `db` which the server is busy updating, being on a single thread.
+So, as a design choice, we choose to let 0 connections before recovery. It helps us avoid falling into concurrency and data integrity problems. That's the loading mode. This is what standard systems do, and this is the best practice.
+
+
