@@ -32,6 +32,11 @@ void load_wal(ServerState& state)
     inputFile.close();
 
 
+    // The parser finished, so recovery is mathematically complete!
+    std::cout << "[Server] DB loaded from WAL file." << std::endl;
+    std::cout << "[Server] Recovered " << state.db.size() << " keys into memory." << std::endl;
+
+
 }
 
 
@@ -40,7 +45,14 @@ int main(int argc, char *argv[])
 
     ServerState state;
 
+    std::cout << "[Server] Booting up IMKVS..." << std::endl;
+    std::cout << "[Server] Starting WAL recovery..." << std::endl;
+
+
     load_wal(state);
+
+    std::cout << "[Server] Initialization complete." << std::endl;
+    std::cout << "[Server] Ready to accept connections!" << std::endl;
 
 
     // normal args check

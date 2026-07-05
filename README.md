@@ -56,6 +56,31 @@ TCP guarantees an ordered byte stream, not message boundaries — a single comma
 - Giving each connection its own persistent state (`fd` + `input_buffer`) that survives between `epoll_wait()` calls
 - Replacing naive line-based parsing with an incremental parser that reads exactly as many bytes as are available, returns early on incomplete input, and resumes cleanly on the next read
 
+## Benchmarking results
+Performance
+
+GET (100 clients)
+-----------------
+78,818 ops/sec
+
+SET (100 clients)
+-----------------
+36,767 ops/sec
+
+10 KB payload
+-------------
+4,925 ops/sec
+
+Latency (GET)
+
+Average
+790 µs
+
+P99
+2.6 ms
+
+
+
 ## Getting Started
 
 ### Prerequisites

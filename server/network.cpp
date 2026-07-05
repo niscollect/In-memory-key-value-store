@@ -18,7 +18,9 @@ int create_listening_socket(char *port)
     // server socket setup
 
     int sockfd;
-    const int backlog = 10;
+    // const int backlog = 10;
+    const int backlog = 511; // Standard backlog size Redis uses
+
 
     struct addrinfo hints, *res;
     memset(&hints, 0, sizeof hints);
