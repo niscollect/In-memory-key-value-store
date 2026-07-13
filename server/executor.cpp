@@ -13,22 +13,7 @@ int executor(int fd, string command, string key, string value, ServerState& stat
         {
             // * WAL HERE
             // save in RESP format -> just make it RESP
-            if (state.wal_file.is_open())
-            {
-                state.wal_file << "*3\r\n"
-                               << "$3\r\nSET\r\n"
-                               << "$" << key.length() << "\r\n"
-                               << key << "\r\n"
-                               << "$" << value.length() << "\r\n"
-                               << value << "\r\n";
-
-                state.wal_file.flush();
-                // force save to disk
-            }
-            else
-            {
-                std::cerr << "Error: Write-Ahead Log is not open!" << std::endl;
-            }
+            append_to_wal(state, command, key, value);
         }
 
         state.db[key] = value;
@@ -77,20 +62,7 @@ int executor(int fd, string command, string key, string value, ServerState& stat
             {
                 // * WAL HERE
                 // save in RESP format -> just make it RESP
-                if (state.wal_file.is_open())
-                {
-                    state.wal_file << "*2\r\n"
-                                   << "$3\r\nDEL\r\n"
-                                   << "$" << key.length() << "\r\n"
-                                   << key << "\r\n";
-
-                    state.wal_file.flush();
-                    // force save to disk
-                }
-                else
-                {
-                    std::cerr << "Error: Write-Ahead Log is not open!" << std::endl;
-                }
+                append_to_wal(state, command, key, value);
             }
 
             state.db.erase(key);

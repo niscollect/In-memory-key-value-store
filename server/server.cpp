@@ -2,44 +2,6 @@
 
 #include "server.h"
 
-
-void load_wal(ServerState& state)
-{
-    bool is_recovery = true;
-    
-    std::ifstream inputFile("wal.txt");
-
-    if (!inputFile.is_open())
-    {
-        std::cerr << "Error: Could not open the file!" << std::endl;
-    }
-
-    // std::string buff;
-
-    Client fake_client(-1);
-
-    // Read the entire stream buffer into a stringstream
-    std::stringstream buffer;
-    buffer << inputFile.rdbuf();
-
-    // Convert the buffer into a single string variable
-    fake_client.input_buffer = buffer.str();
-
-    parser(fake_client, state, is_recovery);
-
-
-    // Finally close the file (good practice)
-    inputFile.close();
-
-
-    // The parser finished, so recovery is mathematically complete!
-    std::cout << "[Server] DB loaded from WAL file." << std::endl;
-    std::cout << "[Server] Recovered " << state.db.size() << " keys into memory." << std::endl;
-
-
-}
-
-
 int main(int argc, char *argv[])
 {
 
@@ -47,7 +9,6 @@ int main(int argc, char *argv[])
 
     std::cout << "[Server] Booting up IMKVS..." << std::endl;
     std::cout << "[Server] Starting WAL recovery..." << std::endl;
-
 
     load_wal(state);
 

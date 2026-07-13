@@ -37,6 +37,15 @@ class ServerState
     {
         this->wal_file.open("wal.txt", std::ios::app);
     }
+
+
+    ~ServerState()
+    {
+        if (this->wal_file.is_open())
+        {
+            this->wal_file.close();
+        }
+    }
 };
 
 
@@ -53,3 +62,4 @@ const int SUCCESS = 0;
 #include "executor.h"
 #include "network.h"
 #include "parser.h"
+#include "persistence.h"
