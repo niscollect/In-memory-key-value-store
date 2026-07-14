@@ -67,7 +67,7 @@ However, a point to establish the base:
 Whole point of an im-memory key-value server store like Redis is that clients share the database. And so it's not a conflict if A sets a value and B changes or deletes it.
 
 We've come to a realization, that the server, currently, can't handle multiple clients. The reason is, it's waiting on the first client to disconnect and not serving other clients waiting in the queue.
-One solution is Multi threading. But, we won't do it, infact, Redis doesn't do it either. Redis uses single threaded event loop and non-blocking I/O (multiplexing)
+One solution is concurrency. But, Redis doesn't do it, and so won't we. Redis uses single threaded event loop and non-blocking I/O (multiplexing)
 
 So, we'll first learn How Multiple Clients Behave In a Single-Threaded Model.
 [[https://stackoverflow.com/questions/51587316/how-to-handle-multiple-clients-on-single-thread-server-with-sockets]]
@@ -311,11 +311,10 @@ So, finally here, I abandon my `client.cpp` program.
 <hr>
 
 <br>
-
-![Architecture diagram](./Pasted%20image%2020260703142843.png)
-
+![[Pasted image 20260703142843.png]]
 
 So far, so good.
+
 
 <hr>
 <br>
@@ -385,4 +384,64 @@ The most basic and efficient way: use a FLAG to show we are in recover mode, not
 One natural question can (and must) come to mind. If this is all supposed to happen during the startup, how are new clients supposed to connect and mutate the `db` which the server is busy updating, being on a single thread.
 So, as a design choice, we choose to let 0 connections before recovery. It helps us avoid falling into concurrency and data integrity problems. That's the loading mode. This is what standard systems do, and this is the best practice.
 
+PHASE-3: Rewrite
+Currently the WAL we have is basically AOF inspired. 
+However, we can very clearly guess the AOF we have is not very efficient. Coz If you SET a key 1000 times, the AOF (WAL) file contains 1000 SET commands, but only the last one matters. The rewrite process creates a new, compact AOF file that represents the current dataset state.
+That file grows forever unless we manage rewrites.
+So, there are several ways: some easy ways, and some ways to get tangled in for weeks.
+So, I'll use the easy one.
+The easy one is, when the client commands REWRITEAOF then rewrite.
+Now, how do we write?
+Here's the lifecycle:
+open a temp file -> write everything from the DB into it (in RESP form)  -> close temp -> close old -> rename it to the original one -> reopen new.
+Like this:
+```C++
+	//* 1) create a temporary wal file; do not touch the original one
+    std::ofstream tmp("wal.tmp");
+    
+    // 2)
+    //* NOTE: The new AOF is generated from the current database, not from the AOF
+    // we'll have to write only SETs
+    for (const auto &[key, value] : state.db)
+    {
+        // write RESP SET command to tmp
+        tmp << "*3\r\n" << "$3\r\nSET\r\n"
+                       << "$" << key.length() << "\r\n"
+                       << key << "\r\n"
+                       << "$" << value.length() << "\r\n"
+                       << value << "\r\n";
+    }
+    
+    //* 3) (flush &) close this file
+    tmp.flush(); // not very necessary. `.close()` does it anyway
+    tmp.close();
+    
+    //* 4) close the original wal
+    state.wal_file.close();
 
+    // After the rewrite finishes, this wal.tmp is the new AOF (WAL) file, and the original one has now become old.
+    // So just replace it
+    //* 5) replace
+    rename("wal.tmp", "wal.txt");
+    // The old wal.txt is removed from the directory, and wal.tmp is moved into its place
+
+    //* 6) reopen
+    state.wal_file.open("wal.txt", ios::app);
+```
+
+
+
+---
+
+### Current limitations
+
+- AOF rewrite blocks the event loop.
+- This is intentional to keep the storage layer simple.
+
+Future work
+
+- Background AOF rewrite using fork() and copy-on-write.
+- Rewrite buffer for concurrent writes.
+- Periodic fsync policy.
+
+---
