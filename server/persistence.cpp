@@ -30,7 +30,6 @@ void load_wal(ServerState &state)
         exit(1); // Stop the server from booting
     }
 
-
     // Finally close the file (good practice)
     inputFile.close();
 
@@ -78,4 +77,43 @@ void append_to_wal(ServerState &state, string command, string key, string value)
             std::cerr << "Error: Write-Ahead Log is not open!" << std::endl;
         }
     }
+}
+
+void rewrite_aof(ServerState &state)
+{
+    cout << "[Server] Starting AOF Rewrite..." << endl;
+
+    //* create a temporary wal file; do not touch the original one
+    std::ofstream tmp("wal.tmp");
+
+    //* NOTE: The new AOF is generated from the current database, not from the AOF
+    // we'll have to write only SETs
+    for (const auto &[key, value] : state.db)
+    {
+        // write RESP SET command to tmp
+        tmp << "*3\r\n"
+                       << "$3\r\nSET\r\n"
+                       << "$" << key.length() << "\r\n"
+                       << key << "\r\n"
+                       << "$" << value.length() << "\r\n"
+                       << value << "\r\n";
+    }
+
+    //* (flush &) close this file
+    tmp.flush(); // not very necessary. `.close()` does it anyway
+    tmp.close();
+
+    //* close the original wal
+    state.wal_file.close();
+
+    // After the rewrite finishes, this wal.tmp is the new AOF (WAL) file, and the original one has now become old.
+    // So just replace it
+    //* replace
+    rename("wal.tmp", "wal.txt");
+    // The old wal.txt is removed from the directory, and wal.tmp is moved into its place
+
+    //* reopen
+    state.wal_file.open("wal.txt", ios::app);
+
+    cout << "[Server] AOF Rewrite COMPLETED" << endl;
 }

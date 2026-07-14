@@ -1,6 +1,6 @@
 #include "server.h"
 
-int executor(int fd, string command, string key, string value, ServerState& state, bool is_recovery)
+int executor(int fd, string command, string key, string value, ServerState &state, bool is_recovery)
 {
 
     //@note When server fails to send a response, the connection must close.
@@ -81,6 +81,15 @@ int executor(int fd, string command, string key, string value, ServerState& stat
                 if (send(fd, ":0\r\n", 4, 0) == -1)
                     return NETWORK_ERROR;
             }
+        }
+    }
+    else if (command == "REWRITEAOF")
+    {
+        if (!is_recovery)
+        {
+            rewrite_aof(state);
+            if (send(fd, "+OK\r\n", 5, 0) == -1)
+                return NETWORK_ERROR;
         }
     }
     else
