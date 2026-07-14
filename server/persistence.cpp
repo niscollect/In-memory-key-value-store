@@ -88,6 +88,12 @@ void rewrite_aof(ServerState &state)
 
     //* NOTE: The new AOF is generated from the current database, not from the AOF
     // we'll have to write only SETs
+    if(state.db.empty())
+    {
+        cout << "[Server] AOF Rewrite: DB is empty, skipping..." << endl;
+        tmp.close();
+        return;
+    }
     for (const auto &[key, value] : state.db)
     {
         // write RESP SET command to tmp
